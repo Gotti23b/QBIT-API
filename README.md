@@ -1,103 +1,48 @@
 # QBIT API
 
-Central communication service for QBIT Web, Windows and Android.
+Backend central de QBIT Web, Windows y Android. La implementación activa usa **Supabase Edge Functions + PostgreSQL + Auth + Row Level Security**. No necesita un servidor Node.js propio ni una base SQLite.
 
-## What is included
+## Proyecto desplegado
 
-- REST API for registering, listing and revoking QBIT devices.
-- Per-device random credentials (only the SHA-256 hash is stored).
-- WebSocket connections for real-time device communication.
-- A command queue and command-result tracking.
-- SQLite persistence for devices and commands.
-- Basic security headers, JSON size limit and configurable CORS.
+- Supabase project ref: `jtxyzfjgspnmzlvztjqx`
+- Edge Function: `qbit-api`
+- Endpoint: `https://jtxyzfjgspnmzlvztjqx.supabase.co/functions/v1/qbit-api`
+- JWT verification: habilitada.
+- Código de la función: `supabase/functions/qbit-api/index.ts`
 
-## Requirements
+## Recursos de base de datos
 
-- Node.js 20+
-- A persistent disk for the SQLite database in hosted environments.
+- `public.qbit_devices`: dispositivos vinculados a cada cuenta.
+- `public.qbit_device_commands`: cola de acciones y resultados.
+- RLS habilitado en ambas tablas. Las políticas limitan el acceso a los datos del usuario autenticado.
+- Las acciones permitidas están limitadas a una lista explícita; los clientes deben pedir confirmación local antes de ejecutarlas.
 
-## Run locally
+## Rutas
 
-```bash
-npm install
-cp .env.example .env
-```
+Todas requieren una sesión válida de Supabase en el encabezado `Authorization: Bearer <access_token>`.
 
-Set `QBIT_ADMIN_TOKEN` in `.env` to a unique random secret of at least 32 characters, then:
+| Método | Ruta | Función |
+|---|---|---|
+| GET | `/devices` | Listar dispositivos propios |
+| POST | `/devices` | Registrar un dispositivo |
+| PATCH | `/devices/:id` | Actualizar presencia |
+| POST | `/devices/:id/commands` | Enviar una acción permitida |
+| GET | `/devices/:id/commands` | Consultar acciones pendientes |
+| POST | `/commands/:id/claim` | Reclamar una acción |
+| PATCH | `/commands/:id/result` | Guardar el resultado |
 
-```bash
-npm run check
-npm start
-```
+## Desarrollo y despliegue
 
-Health check: `GET http://localhost:3000/health`
+La función se ejecuta en el entorno administrado de Supabase (Deno). No ejecutar `npm start` ni desplegar un servidor Node para esta arquitectura.
 
-## Authentication model
+Para modificar la función:
+1. Editar `supabase/functions/qbit-api/index.ts`.
+2. Desplegarla como Edge Function `qbit-api` en el proyecto indicado.
+3. Mantener `verify_jwt = true`.
+4. Verificar las políticas RLS antes de habilitar nuevas acciones.
 
-Administrative routes require:
+**Nunca** incluir claves `service_role` en clientes web, Android o Windows. Las aplicaciones usan la clave publishable y la sesión del usuario.
 
-```
-Authorization: Bearer YOUR_QBIT_ADMIN_TOKEN
-```
+## Dominio propio
 
-**Never put the admin token in browser JavaScript, a public repository, or a desktop/mobile app.** The web frontend must call its own trusted backend, which then calls this API. Device apps receive their own device token.
-
-## API routes
-
-| Method | Route | Purpose | Authentication |
-|---|---|---|---|
-| GET | `/health` | Service health | None |
-| POST | `/v1/devices/register` | Register a device | Admin |
-| GET | `/v1/devices` | List devices | Admin |
-| DELETE | `/v1/devices/:id` | Revoke a device | Admin |
-| POST | `/v1/devices/:id/commands` | Queue/send a command | Admin |
-| GET | `/v1/commands/:id` | Read command status/result | Admin |
-| WebSocket | `/v1/connect` | Persistent device connection | Device token in first message |
-
-### Register a device
-
-```http
-POST /v1/devices/register
-Authorization: Bearer YOUR_QBIT_ADMIN_TOKEN
-Content-Type: application/json
-
-{
-  "name": "Thiago's PC",
-  "platform": "windows"
-}
-```
-
-Supported platforms: `web`, `windows`, `android`.
-
-The response contains a device token **once**. Store it securely on that device.
-
-### Connect a device
-
-Open a WebSocket to `/v1/connect`, then send:
-
-```json
-{ "type": "auth", "token": "DEVICE_TOKEN" }
-```
-
-The server responds with `connected`. The device can send `heartbeat` messages and `command_result` messages. Commands arrive as `command` messages.
-
-### Send a command
-
-```http
-POST /v1/devices/DEVICE_ID/commands
-Authorization: Bearer YOUR_QBIT_ADMIN_TOKEN
-Content-Type: application/json
-
-{
-  "action": "system_info",
-  "payload": {}
-}
-```
-
-This service only transports named actions and payloads. A QBIT client must validate each action against its own allowlist and ask for local confirmation when an operation is sensitive. Do not implement arbitrary shell execution from API messages.
-
-## Deployment notes
-
-Deploy as a persistent Node.js service, not as a static GitHub Pages site. Configure the environment variables in the hosting provider and attach persistent storage for `QBIT_DB_PATH`. Use HTTPS/WSS in production and set `CORS_ORIGINS` to the exact trusted web origins.
-
-This is the initial API foundation, not a complete public production account system. Before exposing it publicly, add user authentication, rate limiting, audit logs, device pairing/approval UI, backup/restore and monitoring. The API admin token must remain server-side.
+El endpoint actual usa el dominio oficial `supabase.co`. Configurar `api.qbit.uno` como dominio personalizado requiere habilitar el complemento pago de Custom Domains de Supabase y agregar los registros DNS de verificación que Supabase genere. No se activa automáticamente ni forma parte de esta configuración gratuita.
