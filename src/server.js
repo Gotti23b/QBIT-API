@@ -1,6 +1,8 @@
 import "dotenv/config";
 import crypto from "node:crypto";
 import http from "node:http";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import cors from "cors";
 import express from "express";
@@ -18,6 +20,7 @@ if (!ADMIN_TOKEN || ADMIN_TOKEN.length < 32) {
   process.exit(1);
 }
 
+mkdirSync(dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 db.exec(`
