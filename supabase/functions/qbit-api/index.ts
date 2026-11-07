@@ -10,7 +10,7 @@ const corsHeaders = {
 const allowedCommands = new Set([
   "get_system_info", "get_battery_info", "get_network_info", "get_display_info",
   "set_volume", "media_control", "open_url", "open_settings",
-  "create_folder", "create_file", "search_files", "lock_pc",
+  "create_folder", "create_file", "search_files", "lock_pc",\n  "android_open_accessibility_settings", "android_back", "android_home",\n  "android_notifications", "android_quick_settings", "android_lock_screen",\n  "android_volume_up", "android_volume_down", "android_volume_mute",\n  "android_brightness_up", "android_brightness_down",
 ]);
 
 function response(data: unknown, status = 200) {
