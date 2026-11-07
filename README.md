@@ -46,3 +46,10 @@ Para modificar la función:
 ## Dominio propio
 
 El endpoint actual usa el dominio oficial `supabase.co`. Configurar `api.qbit.uno` como dominio personalizado requiere habilitar el complemento pago de Custom Domains de Supabase y agregar los registros DNS de verificación que Supabase genere. No se activa automáticamente ni forma parte de esta configuración gratuita.
+
+
+## Controles remotos de Android
+
+QBIT Android puede recibir acciones de navegación del sistema (Atrás, Inicio, notificaciones, ajustes rápidos y bloqueo), volumen y brillo. La navegación requiere que el usuario habilite manualmente el servicio **QBIT Control** en Ajustes → Accesibilidad. El brillo requiere conceder a QBIT el permiso especial para modificar ajustes del sistema. Cada orden se confirma en el propio teléfono.
+
+El cliente Android debe permanecer abierto para consultar la cola de órdenes; no se promete control en segundo plano cuando Android suspende la aplicación. El servicio de accesibilidad no captura ni transmite el contenido de pantalla.
